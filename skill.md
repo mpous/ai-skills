@@ -1,3 +1,10 @@
+---
+name: arduino-unoq-applab
+description: Comprehensive guide for adapting applications for the Arduino UNO Q, integrating them into the Arduino App Lab ecosystem as apps and bricks, deploying Edge Impulse ML models, and building Flask-based web UIs. Use this skill when users ask about Arduino UNO Q development, App Lab apps/bricks, ML model deployment, or converting existing projects into App Lab-compatible applications.
+argument-hint: [topic or task]
+allowed-tools: Read, Grep, Glob, WebFetch, Write, Edit, Bash
+---
+
 # Arduino UNO Q & Arduino App Lab Development Guide
 
 ## Table of Contents
@@ -1060,6 +1067,130 @@ hostname -I       # Get device IP
 
 ---
 
+## Additional Resources from Community Knowledge Base
+
+### Additional Bridge Patterns
+
+#### Using `call()` with Return Values (MCU-side handlers)
+```cpp
+// MCU: Handler that returns a value
+String getValueHandler() {
+    return String(analogRead(A0));
+}
+
+// Python side:
+result = bridge.call("getValueHandler")  # Returns the string value
+```
+
+#### Async Notifications (Fire-and-Forget)
+```cpp
+// MCU: Fire notification (no response needed)
+Bridge.notify("buttonPressed", digitalRead(BUTTON_PIN));
+
+// Python side: Handle notifications
+@bridge.on_notify("buttonPressed")
+def handle_button(value):
+    print(f"Button state: {value}")
+```
+
+#### Multiple Parameters
+```python
+# Pass multiple parameters as comma-separated string
+bridge.call("setPWM", "9,128")  # pin, value
+
+// MCU side: Parse the string
+void setPWM(String params) {
+    int comma = params.indexOf(',');
+    int pin = params.substring(0, comma).toInt();
+    int value = params.substring(comma + 1).toInt();
+    analogWrite(pin, value);
+}
+```
+
+---
+
+## Community Troubleshooting Additions
+
+### Common Bridge Communication Issues
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| `call()` returns empty | MCU not initialized | Add 2-3 second delay before first call |
+| `call()` times out | Function blocks too long | Keep handlers non-blocking, use `delay(10)` in loop |
+| Function not found | Name mismatch | Check exact spelling matches between MCU and Python |
+| Serial errors | Wrong baud rate | Verify 115200 baud on both sides |
+
+### Non-Blocking Animation Pattern (MCU)
+```cpp
+enum AnimationState { IDLE, SCROLLING, ANIMATING };
+AnimationState state = IDLE;
+String displayText = "";
+int scrollOffset = 0;
+
+void loop() {
+    switch (state) {
+        case SCROLLING:
+            // Process ONE step per loop iteration
+            scrollOffset++;
+            if (scrollOffset > displayText.length() * 6) {
+                state = IDLE;
+            }
+            break;
+        case ANIMATING:
+            // Animation frame processing
+            break;
+    }
+    Bridge.update();  // Critical: keeps RPC responsive
+    delay(50);
+}
+```
+
+### LED Matrix I2C Troubleshooting
+```cpp
+// I2C Scanner - paste in setup() to find device addresses
+Wire.begin();
+Serial.println("Scanning I2C devices...");
+for (byte addr = 1; addr < 127; addr++) {
+    Wire.beginTransmission(addr);
+    if (Wire.endTransmission() == 0) {
+        Serial.print("Found: 0x");
+        Serial.println(addr, HEX);
+    }
+}
+```
+
+### Network Troubleshooting
+```bash
+# Check Wi-Fi status
+nmcli device wifi list
+
+# Get IP address
+hostname -I
+
+# Test connectivity
+ping google.com
+
+# View network logs
+journalctl -u NetworkManager | tail -20
+```
+
+### Deployment via ADB (Alternative to SSH)
+```bash
+# Port forwarding for web UI access
+adb forward tcp:7000 tcp:7000
+
+# Push files
+adb push local/file /home/arduino/project/
+
+# Shell access
+adb shell
+
+# View logs
+adb logcat | grep arduino
+```
+
+---
+
 ## Resources
 
 - [Arduino App Bricks Library (GitHub)](https://github.com/arduino/app-bricks-py)
@@ -1068,3 +1199,4 @@ hostname -I       # Get device IP
 - [Example: Object Detection with Flask](https://github.com/edgeimpulse/example-arduino-app-lab-object-detection-using-flask)
 - [Arduino UNO Q Docs Source](https://github.com/arduino/docs-content/tree/main/content/hardware/02.uno/boards/uno-q)
 - [Arduino App Lab Docs Source](https://github.com/arduino/docs-content/tree/main/content/software/app-lab)
+- [Community Knowledge Base](https://github.com/CWTI-Ltd/arduino_uno_q_knowledge_base_and_playground)
