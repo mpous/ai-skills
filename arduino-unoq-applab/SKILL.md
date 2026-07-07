@@ -180,11 +180,7 @@ bricks: []
 
 # Example with bricks and Edge Impulse model:
 # bricks:
-# - arduino:video_object_detection: {
-#     variables: {
-#       EI_OBJ_DETECTION_MODEL: /home/arduino/.arduino-bricks/ei-models/model.eim
-#     }
-#   }
+# - arduino:video_object_detection: {}
 # - arduino:web_ui: {}
 ```
 
@@ -592,44 +588,30 @@ def send_to_led_matrix(text: str) -> None:
 ### Step 1: Export from Edge Impulse Studio
 1. Train your impulse in Edge Impulse Studio
 2. Go to **Deployment**
-3. Export as `.eim` file for:
+3. Select the target hardware as **Arduino UNO Q**
+4. Export as `.eim` file for:
+   - **"Arduino UNO Q"** (CPU inference)
    - **"Linux aarch64"** (CPU inference)
    - **"Linux Arduino UNO Q (GPU)"** (GPU-accelerated inference via Adreno 702)
 
 ### Step 2: Transfer Model to Device
 ```bash
-# Via SCP
-scp your-model.eim arduino@<device-ip>:/home/arduino/.arduino-bricks/ei-models/
+# Deploy the model via Arduino AppLab as defined here. Follow the instructions
+https://docs.edgeimpulse.com/hardware/deployments/run-arduino-app-lab#download-and-select-the-new-custom-model
 
-# Or into your app's models directory
-scp your-model.eim arduino@<device-ip>:/home/arduino/ArduinoApps/my-app/models/
+# This is the old way to move the model via SCP. 
+scp your-model.eim arduino@<device-ip>:/home/arduino/.arduino-bricks/ei-models/
 ```
 
 ### Step 3: Make Model Executable
 ```bash
-# CRITICAL: .eim files must have execute permission
+# CRITICAL: In case you copied the .eim files must have execute permission
 chmod +x /home/arduino/.arduino-bricks/ei-models/*.eim
 # Or for app-local models:
 chmod +x /home/arduino/ArduinoApps/my-app/models/*.eim
 ```
 
-### Step 4: Configure app.yaml
-```yaml
-# Option A: Using a brick with EI model
-bricks:
-- arduino:video_object_detection: {
-    variables: {
-      EI_OBJ_DETECTION_MODEL: /home/arduino/.arduino-bricks/ei-models/your-model.eim
-    }
-  }
-- arduino:web_ui: {}
-
-# Option B: Standalone Flask app (no bricks, direct SDK usage)
-bricks: []
-ports: [5001]
-```
-
-### Step 5: Run
+### Step 4: Run
 ```bash
 # With App Lab CLI
 arduino-app-cli app start user:my-app
